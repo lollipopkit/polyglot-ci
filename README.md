@@ -1,25 +1,24 @@
-# winnowl-validation
+# polyglot-ci
 
-通用**验证沙盒镜像**,用于 [winnowl](https://github.com/lollipopkit/code-review-box) 的 autofix 交付前验证(§28.1)。
+多语言**工具链容器镜像**,用于在隔离沙盒里对任意仓库跑 `install → lint → build → test`。
 
-autofix 产出补丁后,在**隔离沙盒**里对已打补丁的工作树跑 `install → lint → build → test`,结果作**备注**附到交付的 stacked CR（失败不阻断交付）。本镜像提供各生态工具链，沙盒以它为基础镜像、网络仅放行包管理器源（`package-registry-only`）。
+从 **Docker Official 基底(`debian:bookworm-slim`)** 自建,**不基于任何第三方基底镜像**(避免供应链攻击 —— 该镜像会跑不可信仓库的构建/测试)。所有工具链取自**官方/第一方源的最新 stable**(不钉版本;Node 额外 SHA256 校验)。
 
 ## 工具链
 
-- **Flutter / Dart**（基底 `ghcr.io/cirruslabs/flutter:stable`）
-- **Go**、**Rust**（rustup）、**Node**（+ pnpm / yarn）、**Python 3**（+ pip）
+- **Flutter / Dart**（`git clone -b stable github.com/flutter/flutter` + `flutter precache`）
+- **Go**（go.dev 最新 stable）
+- **Rust**（官方 rustup）
+- **Node**（nodejs.org 最新 + SHA256 校验）+ pnpm / yarn
+- **Python 3** + pip
 
 ## 镜像
 
-- `ghcr.io/lollipopkit/winnowl-validation:latest`
-- `ghcr.io/lollipopkit/winnowl-validation:v0.0.<run_number>`（唯一版本，推荐钉版）
+- `ghcr.io/lollipopkit/polyglot-ci:latest`
+- `ghcr.io/lollipopkit/polyglot-ci:v0.0.<run_number>`（唯一版本，推荐钉版引用）
 
-**public 包**：零私有内容，匿名 pull（k3s 无需 pull secret）。
+**public 包**：零私有内容，匿名 pull（无需 pull secret）。
 
-## 用法（winnowl runner）
+## 运行约定
 
-```
-VALIDATION_SANDBOX_IMAGE=ghcr.io/lollipopkit/winnowl-validation:v0.0.N
-```
-
-沙盒以非 root（uid 65534）+ 只读 rootfs 运行；工具链 cache 指向可写 `/tmp`（见 Dockerfile 的 `HOME`/`GOPATH`/`PUB_CACHE` 等）。
+沙盒常以非 root（如 uid 65534）+ 只读 rootfs 运行;工具链 cache/HOME 指向可写 `/tmp`（见 Dockerfile 的 `HOME`/`GOPATH`/`GOCACHE`/`PUB_CACHE`/`npm_config_cache`）。仓库树挂 `/workspace`。

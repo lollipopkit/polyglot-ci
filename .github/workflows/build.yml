@@ -16,7 +16,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/lollipopkit/winnowl-validation
+  IMAGE_NAME: ghcr.io/lollipopkit/polyglot-ci
 
 jobs:
   build:

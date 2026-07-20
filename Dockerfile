@@ -1,4 +1,4 @@
-# winnowl 通用验证镜像(plan.md §28.1)。autofix 交付前在**沙盒**内跑 install→lint→build→test。
+# polyglot-ci:多语言工具链容器镜像。在隔离沙盒里对任意仓库跑 install→lint→build→test。
 #
 # 安全:从 **Docker Official 基底(debian)** 自建,**不用第三方基底镜像**(避免供应链攻击 —— 本沙盒会跑
 # 不可信仓库的 install/test)。所有工具链取自**官方/第一方源的最新 stable**(不钉版本 —— 信任锚点即官方源;
@@ -42,7 +42,7 @@ RUN set -eux; \
 RUN set -eux; \
     git config --system --add safe.directory '*'; \
     git clone -b stable --depth 1 https://github.com/flutter/flutter.git /opt/flutter; \
-    /opt/flutter/bin/flutter --version; \
+    /opt/flutter/bin/flutter precache; \
     chmod -R a+rwX /opt/flutter
 
 ENV PATH=/usr/local/go/bin:/opt/rust/bin:/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:$PATH \
