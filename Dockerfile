@@ -15,6 +15,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl git xz-utils unzip zip \
       build-essential pkg-config \
+      clang lld llvm \
       python3 python3-pip python3-venv python3-pytest \
       libglu1-mesa \
   && ln -sf /usr/bin/python3 /usr/local/bin/python \

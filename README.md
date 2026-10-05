@@ -11,6 +11,7 @@
 - **Rust**（官方 rustup）
 - **Node**（nodejs.org 最新 + SHA256 校验）+ pnpm / yarn
 - **Python 3** + pip + pytest
+- **C/C++**:gcc(build-essential)+ clang / lld / llvm(Dart native assets 的 `native_toolchain_c` 在 Linux 上只认 clang)
 
 每周一自动重建(取各官方源当时的最新 stable)。
 
