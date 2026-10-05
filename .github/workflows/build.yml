@@ -10,6 +10,9 @@ on:
       - Dockerfile
       - .github/workflows/build.yml
   workflow_dispatch:
+  # Toolchains are "latest stable at build time": rebuild weekly so they stay current.
+  schedule:
+    - cron: '0 3 * * 1'
 
 permissions:
   contents: read
