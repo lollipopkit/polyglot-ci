@@ -85,11 +85,13 @@ RUN set -eux; \
 # At run time the SDK is read-only, but bin/flutter and bin/dart rewrite stamps under bin/cache on
 # every start (their self-update check) and the tool takes a lock file there. These entry points
 # run the precompiled tool and the Dart SDK directly; FLUTTER_ALREADY_LOCKED skips the lock (the
-# SDK cannot change, so there is nothing to guard).
+# SDK cannot change, so there is nothing to guard), and --no-version-check the tool's own update
+# check (a `git fetch` into the SDK and a stamp file, once the image is a day old: it crashed on
+# the read-only SDK).
 RUN set -eux; \
     printf '%s\n' '#!/bin/sh' \
       'export FLUTTER_ROOT=/opt/flutter FLUTTER_ALREADY_LOCKED=true' \
-      'exec /opt/flutter/bin/cache/dart-sdk/bin/dart --packages=/opt/flutter/packages/flutter_tools/.dart_tool/package_config.json /opt/flutter/bin/cache/flutter_tools.snapshot --suppress-analytics "$@"' \
+      'exec /opt/flutter/bin/cache/dart-sdk/bin/dart --packages=/opt/flutter/packages/flutter_tools/.dart_tool/package_config.json /opt/flutter/bin/cache/flutter_tools.snapshot --suppress-analytics --no-version-check "$@"' \
       >/usr/local/bin/flutter; \
     ln -s /opt/flutter/bin/cache/dart-sdk/bin/dart /usr/local/bin/dart; \
     chmod 755 /usr/local/bin/flutter
