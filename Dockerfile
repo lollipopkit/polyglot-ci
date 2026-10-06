@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # polyglot-ci: multi-language toolchain image for running install → lint → build → test of any
 # repository inside an isolated sandbox.
 #
@@ -8,7 +9,8 @@
 #
 # Runtime contract: non-root (e.g. uid 65534), read-only rootfs, writable /workspace and /tmp.
 # Everything a toolchain writes at run time (HOME, caches, CARGO_HOME, pip user installs) therefore
-# lives under /tmp; the toolchains themselves are root-owned and read-only.
+# lives under /tmp; the toolchains themselves are root-owned and read-only (a toolchain a repository
+# pins is installed under /tmp too).
 FROM debian:trixie-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -38,13 +40,30 @@ RUN set -eux; cd /tmp; \
     rm -f "${FILE}" SHASUMS256.txt; \
     npm i -g pnpm yarn
 
-# Rust: official rustup (latest stable; rustup verifies its own downloads), installed to a shared
-# path. Its CARGO_HOME is only used here: at run time CARGO_HOME moves to /tmp (see below), the
-# toolchain stays under RUSTUP_HOME and the cargo / rustc proxies on PATH.
+# Rust: official rustup (latest stable with clippy and rustfmt; rustup verifies its own downloads),
+# installed to a shared path. Its CARGO_HOME is only used here: at run time CARGO_HOME moves to /tmp
+# (see below).
 RUN set -eux; \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh; \
-    RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh /tmp/rustup.sh -y --profile minimal --no-modify-path; \
+    RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh /tmp/rustup.sh -y --profile minimal -c clippy,rustfmt --no-modify-path; \
     rm /tmp/rustup.sh
+
+# A repository's rust-toolchain.toml pins its own toolchain (an exact version, extra targets), which
+# rustup installs on first use, so RUSTUP_HOME must be writable at run time: it is /tmp/.rustup.
+# rustup and its proxies (cargo, rustc, clippy, …) start through this entry, which links the
+# image's toolchain into a fresh RUSTUP_HOME (read-only, not copied) before running them.
+COPY --chmod=755 <<'EOF' /usr/local/lib/rustup-entry
+#!/bin/sh
+h="${RUSTUP_HOME:-/tmp/.rustup}"
+if [ "$h" != /opt/rust ] && [ ! -e "$h/settings.toml" ]; then
+  mkdir -p "$h/toolchains" "$h/update-hashes"
+  for t in /opt/rust/toolchains/*; do ln -sfn "$t" "$h/toolchains/${t##*/}" 2>/dev/null; done
+  cp /opt/rust/update-hashes/* "$h/update-hashes/" 2>/dev/null
+  cp /opt/rust/settings.toml "$h/settings.toml.$$" && mv -f "$h/settings.toml.$$" "$h/settings.toml"
+fi
+exec "/opt/rust/bin/${0##*/}" "$@"
+EOF
+RUN for p in /opt/rust/bin/*; do ln -s /usr/local/lib/rustup-entry "/usr/local/bin/${p##*/}"; done
 
 # Flutter (with Dart): the official github.com/flutter/flutter **stable branch**, artifacts
 # precached so a run needs no SDK download. The SDK's own pub dependencies go to a cache inside the
@@ -76,9 +95,9 @@ RUN set -eux; \
 RUN chown -R root:root /opt /usr/local
 
 # /tmp/.local/bin: console scripts of pip user installs (PIP_USER, HOME=/tmp).
-ENV PATH=/tmp/.local/bin:/usr/local/go/bin:/opt/rust/bin:$PATH \
+ENV PATH=/tmp/.local/bin:/usr/local/go/bin:$PATH \
     HOME=/tmp \
-    RUSTUP_HOME=/opt/rust \
+    RUSTUP_HOME=/tmp/.rustup \
     CARGO_HOME=/tmp/.cargo \
     GOPATH=/tmp/go GOCACHE=/tmp/go-cache GOFLAGS=-mod=mod \
     PUB_CACHE=/tmp/.pub-cache \

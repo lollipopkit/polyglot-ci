@@ -8,7 +8,7 @@
 
 - **Flutter / Dart**（`git clone -b stable github.com/flutter/flutter` + `flutter precache`）
 - **Go**（go.dev 最新 stable）
-- **Rust**（官方 rustup）
+- **Rust**（官方 rustup,stable + clippy / rustfmt）
 - **Node**（nodejs.org 最新 + SHA256 校验）+ pnpm / yarn
 - **Python 3** + pip + pytest
 - **C/C++**:gcc(build-essential)+ clang / lld / llvm(Dart native assets 的 `native_toolchain_c` 在 Linux 上只认 clang)
@@ -26,7 +26,8 @@
 
 沙盒以非 root（如 uid 65534）+ 只读 rootfs 运行,可写的只有 `/workspace`(仓库树)与 `/tmp`:
 
-- 运行时写的东西都在 `/tmp`:`HOME`、`CARGO_HOME`、`GOPATH`/`GOCACHE`、`PUB_CACHE`、npm cache、pip user 安装(`PIP_USER=1`)。`/tmp` 要给够(装依赖需要上 GB)。
+- 运行时写的东西都在 `/tmp`:`HOME`、`CARGO_HOME`、`RUSTUP_HOME`、`GOPATH`/`GOCACHE`、`PUB_CACHE`、npm cache、pip user 安装(`PIP_USER=1`)。`/tmp` 要给够(装依赖需要上 GB)。
 - 工具链本身归 root、只读;所有文件属主都是 root,rootless docker 也能解压。
 - `flutter` / `dart` 是 `/usr/local/bin` 下的入口:直接运行预编译的 flutter tool 与 Dart SDK,跳过 `bin/flutter` 每次启动时改写 SDK 的自更新检查。
+- 仓库用 `rust-toolchain.toml` 钉的工具链(版本、额外 target)在首次使用时由 rustup 装进 `/tmp/.rustup`(下载自 `static.rust-lang.org`,走代理时需放行;12 个 target 约 2 GB);镜像自带的 stable 以只读链接的方式放在其中,所以钉 `stable` 又要求额外 target / component 的仓库装不上(会报只读文件系统)。
 - 走代理时设 `NO_PROXY=localhost,127.0.0.1,::1`:`flutter test` 的 tester 连本机 websocket。
