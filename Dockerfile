@@ -78,7 +78,7 @@ RUN set -eux; \
     /opt/flutter/bin/flutter precache; \
     # A project's first `pub get` downloads more artifacts on demand (libimobiledevice,
     # libusbmuxd, …); at run time the SDK is read-only and each run would fetch them again.
-    /opt/flutter/bin/flutter create -q --project-name warm /tmp/warm; \
+    /opt/flutter/bin/flutter create --project-name warm /tmp/warm >/dev/null; \
     (cd /tmp/warm && PUB_CACHE=/tmp/warm-pub /opt/flutter/bin/flutter pub get); \
     rm -rf /tmp/warm /tmp/warm-pub /root/.config /root/.dart-tool /root/.flutter
 
