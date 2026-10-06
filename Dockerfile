@@ -76,7 +76,11 @@ RUN set -eux; \
     git clone -b stable --depth 1 https://github.com/flutter/flutter.git /opt/flutter; \
     /opt/flutter/bin/flutter --disable-analytics; \
     /opt/flutter/bin/flutter precache; \
-    rm -rf /root/.config /root/.dart-tool /root/.flutter
+    # A project's first `pub get` downloads more artifacts on demand (libimobiledevice,
+    # libusbmuxd, …); at run time the SDK is read-only and each run would fetch them again.
+    /opt/flutter/bin/flutter create -q --project-name warm /tmp/warm; \
+    (cd /tmp/warm && PUB_CACHE=/tmp/warm-pub /opt/flutter/bin/flutter pub get); \
+    rm -rf /tmp/warm /tmp/warm-pub /root/.config /root/.dart-tool /root/.flutter
 
 # At run time the SDK is read-only, but bin/flutter and bin/dart rewrite stamps under bin/cache on
 # every start (their self-update check) and the tool takes a lock file there. These entry points
